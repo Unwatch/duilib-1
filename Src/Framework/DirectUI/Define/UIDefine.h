@@ -86,49 +86,9 @@ typedef enum _enUINOTIFY
 	UINOTIFY_TIMER,//timer
 	UINOTIFY_CONTEXTMENU,
 	UINOTIFY_DROPFILES,//dropfiles
-	// 编辑框事件
-	UINOTIFY_EN_CHANGE,//change
-	UINOTIFY_EN_IMESTART,//imestart
-	UINOTIFY_EN_IMEEND,//imeend
-	UINOTIFY_EN_IMEING,//imeing
-	UINOTIFY_EN_LIMIT,//limit
-	UINOTIFY_EN_KEYDOWN,  // keydouwn add by zhangxin 2011.9.7
-	UINOTIFY_EN_LISTCLICK,//listclick
-	UINOTIFY_EN_LISTRETURN,//listreturn
-	// 树形控件事件
-	UINOTIFY_TVN_ITEMEXPENDED,
-	UINOTIFY_TVN_ITEMEXPENDING,
-	UINOTIFY_TVN_BEGINDRAG,
-	UINOTIFY_TVN_ENDDRAG,
-	UINOTIFY_TVN_CHECK,
-	// Slider事件poschange   selchange beginchange endchange
-	UINOTIFY_TRBN_POSCHANGE,
-	UINOTIFY_TRBN_SELCHANGE,
-	UINOTIFY_TRBN_BEGINCHANGE,
-	UINOTIFY_TRBN_ENDCHANGE,
-	// richedit控件事件 
-	UINOTIFY_RE_DBCLICK_IMAGE,
-	UINOTIFY_RE_CLICK_IMAGE_THUMBNAIL_BTN,
-	UINOTIFY_RE_CLICK_LINK,
-	// ActiveX控件
-	UINOTIFY_ACTIVEX_SHOW,
-	UINOTIFY_ACTIVEX_NAVIGATE_BEFORE,
-	UINOTIFY_ACTIVEX_NAVIGATE_AFTER,
-	UINOTIFY_ACTIVEX_LODING,
-	UINOTIFY_ACTIVEX_LODE_DONE,
-	UINOTIFY_ACTIVEX_LOAD_ERROR,
-	UINOTIFY_ACTIVEX_CLOSE,
-	// Animation
-	UINOTIFY_ANIMATION_END,
-	// ComboBox
-	UINOTIFY_CBN_BEFOREDROPDOWN,
-	UINOTIFY_CBN_DROPDOWN,
-	UINOTIFY_CBN_CHECK,
-	// Tab
-	UINOTIFY_TAB_ADD,
-	UINOTIFY_TAB_CLOSE,
-	UINOTIFY_TAB_Ext,
-	UINOTIFY_TAB_DBCLICK,
+
+	// TabLayout
+	UINOTIFY_TAB_SELECTED,
 	//热键
 	UINOTIFY_HOTKEY, 
 	// 窗口还原时的消息
@@ -200,16 +160,6 @@ typedef enum _enUIProperty
 	UIProperty_Border_Wdith,	// 边框宽度
 	UIProperty_Border_Style,		// 边框样式
 }UIProperty;
-
-//typedef enum _enFontStyle
-//{
-//	FontStyleRegular		= 0,		// 常规
-//	FontStyleBold			= 1,		// 粗体
-//	FontStyleItalic			= 2,		// 斜体
-//	FontStyleBoldItalic	= 3,		// 粗体&斜体
-//	FontStyleUnderline	= 4,		// 下划线
-//	FontStyleStrikeout	= 8,		// 删除线
-//}FontStyle;
 
 class CControlUI;
 class CButtonUI;

@@ -432,7 +432,7 @@ CControlUI* CContainerUI::FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT u
 	if( m_pHorizontalScrollBar && m_pHorizontalScrollBar->IsVisible() )
 		rc.bottom -= m_pHorizontalScrollBar->GetFixedHeight();
 
-	m_items.Sort(ZOrderCompare);
+	//m_items.Sort(ZOrderCompare);
 
 	if( (uFlags & UIFIND_TOP_FIRST) != 0 )
 	{
@@ -480,10 +480,12 @@ bool CContainerUI::EventHandler(TEventUI& event)
 {
 	if( !IsMouseEnabled() && event.dwType > UIEVENT__MOUSEBEGIN && event.dwType < UIEVENT__MOUSEEND )
 	{
+		bool bRet = false;
 		if( m_pParent != NULL )
-			return m_pParent->EventHandler(event);
+			bRet = m_pParent->EventHandler(event);
 		else
-			return CControlUI::EventHandler(event);
+			bRet = CControlUI::EventHandler(event);
+		return bRet;
 	}
 
 	if( event.dwType == UIEVENT_SETFOCUS ) 
@@ -913,4 +915,62 @@ CScrollBarUI* CContainerUI::GetVerticalScrollBar() const
 CScrollBarUI* CContainerUI::GetHorizontalScrollBar() const
 {
 	return m_pHorizontalScrollBar;
+}
+
+void CContainerUI::ProcessScrollBar(RECT rc, int cxRequired, int cyRequired)
+{
+	if( m_pHorizontalScrollBar != NULL && m_pHorizontalScrollBar->IsVisible() )
+	{
+		RECT rcScrollBarPos = { rc.left, rc.bottom, rc.right, rc.bottom + m_pHorizontalScrollBar->GetFixedHeight()};
+		m_pHorizontalScrollBar->SetPosition(&rcScrollBarPos);
+	}
+
+	if( m_pVerticalScrollBar == NULL )
+		return;
+
+	if( cyRequired > rc.bottom - rc.top && !m_pVerticalScrollBar->IsVisible() )
+	{
+		m_pVerticalScrollBar->SetVisible(true);
+		m_pVerticalScrollBar->SetScrollRange(cyRequired - (rc.bottom - rc.top));
+		m_pVerticalScrollBar->SetScrollPos(0);
+		m_bScrollProcess = true;
+		SetPosition(&m_rcControl);
+		m_bScrollProcess = false;
+		return;
+	}
+	// No scrollbar required
+	if( !m_pVerticalScrollBar->IsVisible() )
+		return;
+
+	// Scroll not needed anymore?
+	int cyScroll = cyRequired - (rc.bottom - rc.top);
+	if( cyScroll <= 0 && !m_bScrollProcess)
+	{
+		m_pVerticalScrollBar->SetVisible(false);
+		m_pVerticalScrollBar->SetScrollPos(0);
+		m_pVerticalScrollBar->SetScrollRange(0);
+		SetPosition(&m_rcControl);
+	}
+	else
+	{
+		RECT rcScrollBarPos = { rc.right, rc.top, rc.right + m_pVerticalScrollBar->GetFixedWidth(), rc.bottom };
+		m_pVerticalScrollBar->SetPosition(&rcScrollBarPos);
+
+		if( m_pVerticalScrollBar->GetScrollRange() != cyScroll )
+		{
+			int iScrollPos = m_pVerticalScrollBar->GetScrollPos();
+			m_pVerticalScrollBar->SetScrollRange(::abs(cyScroll));
+
+			if( m_pVerticalScrollBar->GetScrollRange() == 0 )
+			{
+				m_pVerticalScrollBar->SetVisible(false);
+				m_pVerticalScrollBar->SetScrollPos(0);
+			}
+
+			if( iScrollPos > m_pVerticalScrollBar->GetScrollPos() )
+			{
+				SetPosition(&m_rcControl);
+			}
+		}
+	}
 }

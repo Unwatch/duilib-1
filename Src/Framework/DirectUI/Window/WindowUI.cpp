@@ -26,6 +26,7 @@ CWindowUI::CWindowUI(void)
 	, m_bFirstLayout(true)
 	, m_bUpdateNeeded(false)
 	, m_bFocusNeeded(false)
+	, m_hUpdateRectPen(NULL)
 {
 	m_ptLastMousePos.x = -1;
 	m_ptLastMousePos.y = -1;
@@ -35,6 +36,11 @@ CWindowUI::CWindowUI(void)
 
 CWindowUI::~CWindowUI(void)
 {
+	if ( m_hUpdateRectPen != NULL)
+	{
+		::DeleteObject(m_hUpdateRectPen);
+		m_hUpdateRectPen = NULL;
+	}
 	for( int i = 0; i < m_arrayDelayedCleanup.GetSize(); i++ )
 		delete static_cast<CControlUI*>(m_arrayDelayedCleanup[i]);
 	for( int i = 0; i < m_arrayAsyncNotify.GetSize(); i++ )
@@ -162,22 +168,28 @@ CControlUI * CWindowUI::GetItem(LPCTSTR lpszItemPath) const
 
 CControlUI* CWindowUI::FindControl(POINT pt) const
 {
-	ASSERT(m_pRootControl);
-	return m_pRootControl->FindControl(__FindControlFromPoint, &pt, UIFIND_VISIBLE | UIFIND_HITTEST | UIFIND_TOP_FIRST);
+	if (m_pRootControl)
+		return m_pRootControl->FindControl(__FindControlFromPoint, &pt, UIFIND_VISIBLE | UIFIND_HITTEST | UIFIND_TOP_FIRST);
+
+	return NULL;
 }
 
 CControlUI* CWindowUI::FindControl(LPCTSTR lpszName) const
 {
-	ASSERT(m_pRootControl);
-	return static_cast<CControlUI*>(m_mapNameHash.Find(lpszName));
+	if (m_pRootControl && m_mapNameHash.GetSize() > 0 )
+		return static_cast<CControlUI*>(m_mapNameHash.Find(lpszName));
+
+	return NULL;
 }
 
 CControlUI* CWindowUI::FindSubControlByName(CControlUI* pParent, LPCTSTR pstrName) const
 {
 	if( pParent == NULL )
 		pParent = m_pRootControl;
-	ASSERT(pParent);
-	return pParent->FindControl(__FindControlFromName, (LPVOID)pstrName, UIFIND_ALL);
+	if (pParent)
+		return pParent->FindControl(__FindControlFromName, (LPVOID)pstrName, UIFIND_ALL);
+
+	return NULL;
 }
 
 UINT CWindowUI::DoModal()
@@ -304,15 +316,29 @@ LRESULT CWindowUI::WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 LRESULT CWindowUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled)
 {   // 自绘窗口真实处理所有窗口消息
-	
-	// 优先处理异步事件队列
-	TNotifyUI* pMsg = NULL;
-	while( pMsg = static_cast<TNotifyUI*>(m_arrayAsyncNotify.GetAt(0)) )
+
+	if ( uMsg == WM_DIRECTUI_MESSAGE )
 	{
-		// Pop出一个内部事件
-		m_arrayAsyncNotify.Remove(0);
-		SendNotifyEvent(pMsg);
-		delete pMsg;
+		// 优先处理异步事件队列
+		TNotifyUI* pMsg = NULL;
+		while( pMsg = static_cast<TNotifyUI*>(m_arrayAsyncNotify.GetAt(0)) )
+		{
+			// Pop出一个内部事件
+			m_arrayAsyncNotify.Remove(0);
+			SendNotifyEvent(pMsg);
+			delete pMsg;
+		}
+
+		// 延迟控件删除
+		CControlUI* pControl = NULL;
+		while ( pControl = static_cast<CControlUI*>(m_arrayDelayedCleanup.GetAt(0)) )
+		{
+			m_arrayDelayedCleanup.Remove(0);
+			delete pControl;
+		}
+		
+		bHandled = true;
+		return S_OK;
 	}
 
 	LRESULT lResult = S_OK;
@@ -324,16 +350,6 @@ LRESULT CWindowUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool&
 		lResult = static_cast<IMessageFilterUI*>(m_arrayPreMessageFilters[i])->MessageFilter(uMsg, wParam, lParam, bHandled);
 		if( bHandled )
 			return lResult;
-	}
-
-	// 延迟控件删除
-	if ( uMsg == WM_DIRECTUI_MESSAGE )
-	{
-		bHandled = true;
-		for( int i = 0; i < m_arrayDelayedCleanup.GetSize(); i++ ) 
-			delete static_cast<CControlUI*>(m_arrayDelayedCleanup[i]);
-		m_arrayDelayedCleanup.Empty();
-		return S_OK;
 	}
 	
 /*
@@ -385,6 +401,12 @@ LRESULT CWindowUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool&
 
 				TemplateObject* pControl = pWindowTemplate->GetChild(0);
 				m_pRootControl = pResourceManager->CreateControlFromTemplate(pControl,this);
+			}
+
+			if ( m_pRootControl == NULL)
+			{
+				::MessageBox(m_hWnd,_T("DirectUI窗口构建失败"),_T("UIEngine"),MB_OK | MB_ICONERROR);
+				PostMessage(WM_DESTROY);
 			}
 		}
 		break;
@@ -645,12 +667,30 @@ LRESULT CWindowUI::MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool&
 				m_pRenderEngine->SetDevice(&m_OffscreenDC);
 				m_pRenderEngine->SetInvalidateRect(ps.rcPaint);
 				m_pRootControl->Render(m_pRenderEngine,&ps.rcPaint);
+				int nCount = m_arrayPostPaintControls.GetSize();
+				for( int i = 0; i < nCount; i++ )
+				{
+					CControlUI* pPostPaintControl = static_cast<CControlUI*>(m_arrayPostPaintControls[i]);
+					pPostPaintControl->PostRender(m_pRenderEngine, &ps.rcPaint);
+				}
 			}
 
 			if ( !m_bLayedWindow )
 			{
 				::BitBlt(ps.hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left,
 					ps.rcPaint.bottom - ps.rcPaint.top, m_OffscreenDC.GetSafeHdc(), ps.rcPaint.left, ps.rcPaint.top, SRCCOPY);
+
+				if( m_bShowUpdateRect )
+				{
+					if ( m_hUpdateRectPen == NULL)
+					{
+						m_hUpdateRectPen = ::CreatePen(PS_SOLID, 1, RGB(220, 0, 0));
+					}
+					HPEN hOldPen = (HPEN)::SelectObject(ps.hdc, m_hUpdateRectPen);
+					::SelectObject(ps.hdc, ::GetStockObject(HOLLOW_BRUSH));
+					::Rectangle(ps.hdc, rcPaint.left, rcPaint.top, rcPaint.right, rcPaint.bottom);
+					::SelectObject(ps.hdc, hOldPen);
+				}
 			}
 			else
 			{
@@ -1419,14 +1459,16 @@ void CWindowUI::SendNotify(TNotifyUI *pMsg, bool bAsync /*= false*/)
 	}
 	else
 	{   // 异步事件，加入队列
-		TNotifyUI *pMsg = new TNotifyUI;
-		pMsg->pSender = pMsg->pSender;
-		pMsg->dwType = pMsg->dwType;
-		pMsg->wParam = pMsg->wParam;
-		pMsg->lParam = pMsg->lParam;
-		pMsg->ptMouse = pMsg->ptMouse;
-		pMsg->dwTimestamp = pMsg->dwTimestamp;
-		m_arrayAsyncNotify.Add(pMsg);
+		TNotifyUI *pAsyncMsg = new TNotifyUI;
+		pAsyncMsg->pSender = pMsg->pSender;
+		pAsyncMsg->dwType = pMsg->dwType;
+		pAsyncMsg->wParam = pMsg->wParam;
+		pAsyncMsg->lParam = pMsg->lParam;
+		pAsyncMsg->ptMouse = pMsg->ptMouse;
+		pAsyncMsg->dwTimestamp = pMsg->dwTimestamp;
+		m_arrayAsyncNotify.Add(pAsyncMsg);
+		// 人工给消息队列增加一条触发异步事件的处理
+		this->PostMessage(WM_DIRECTUI_MESSAGE);
 	}
 }
 
@@ -1703,7 +1745,7 @@ void CWindowUI::AddDelayedCleanup(CControlUI* pControl)
 {
 	pControl->SetManager(this, NULL);
 	m_arrayDelayedCleanup.Add(pControl);
-	::PostMessage(m_hWnd, WM_DIRECTUI_MESSAGE, 0, 0L);
+	this->PostMessage(WM_DIRECTUI_MESSAGE, 0, 0L);
 }
 
 bool CWindowUI::InitControls(CControlUI* pControl, CControlUI* pParent /*= NULL*/)
@@ -1756,6 +1798,36 @@ void CWindowUI::SendNotifyEvent(TNotifyUI *pMsg)
 				break;
 		}
 	} while (false);
+}
+
+int CWindowUI::GetPostPaintCount() const
+{
+	return m_arrayPostPaintControls.GetSize();
+}
+
+bool CWindowUI::AddPostPaint(CControlUI* pControl)
+{
+	ASSERT(m_arrayPostPaintControls.Find(pControl) < 0);
+	return m_arrayPostPaintControls.Add(pControl);
+}
+
+bool CWindowUI::RemovePostPaint(CControlUI* pControl)
+{
+	int nCount = m_arrayPostPaintControls.GetSize();
+	for( int i = 0; i < nCount; i++ )
+	{
+		if( static_cast<CControlUI*>(m_arrayPostPaintControls[i]) == pControl )
+		{
+			return m_arrayPostPaintControls.Remove(i);
+		}
+	}
+	return false;
+}
+
+bool CWindowUI::SetPostPaintIndex(CControlUI* pControl, int iIndex)
+{
+	RemovePostPaint(pControl);
+	return m_arrayPostPaintControls.InsertAt(iIndex, pControl);
 }
 
 #endif

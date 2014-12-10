@@ -115,8 +115,20 @@
     <ClInclude Include="Utils\stb_image.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="Layout\ComponentUI.h">
+    <ClInclude Include="Layout\HorizontalLayoutUI.h">
       <Filter>Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="Layout\VerticalLayoutUI.h">
+      <Filter>Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="Layout\ChildLayoutUI.h">
+      <Filter>Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="Layout\TabLayoutUI.h">
+      <Filter>Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="Control\LabelUI.h">
+      <Filter>Control</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -195,8 +207,20 @@
     <ClCompile Include="Utils\stb_image.c">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="Layout\ComponentUI.cpp">
+    <ClCompile Include="Layout\HorizontalLayoutUI.cpp">
       <Filter>Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="Layout\VerticalLayoutUI.cpp">
+      <Filter>Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="Layout\ChildLayoutUI.cpp">
+      <Filter>Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="Layout\TabLayoutUI.cpp">
+      <Filter>Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="Control\LabelUI.cpp">
+      <Filter>Control</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

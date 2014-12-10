@@ -51,6 +51,7 @@ public:
 	virtual RECT GetInterRect();					// 用于HostWindow
 	void SetInset(LPRECT rc);
 	RECT GetInset();
+	SIZE EstimateSize(SIZE szAvailable);
 
 	// 文本相关
 	virtual LPCTSTR GetText() const;
@@ -86,6 +87,16 @@ public:
 	virtual void SetMaxHeight(int cy);
 	virtual void SetZOrder(int iZOrder);
 	virtual int GetZOrder() const;
+
+	// 显示属性
+	virtual void SetBorderColor(DWORD dwColor);
+	virtual DWORD GetBorderColor();
+	virtual void SetFocusBorderColor(DWORD dwColor);
+	virtual DWORD GetFocusBorderColor();
+	virtual void SetBorderRound(SIZE cxySize);
+	virtual SIZE GetBorderRound();
+	virtual void SetBorderSize(int nSize);
+	virtual int GetBorderSize();
 
 	// tag
 	virtual void SetTag(LPVOID pTag);
@@ -126,6 +137,7 @@ public:
 	virtual CControlUI* FindControl(FINDCONTROLPROC Proc, LPVOID pData, UINT uFlags);
 	virtual bool EventHandler(TEventUI& event);		// 处理CWindowUI转发的消息事件
 	virtual void Render(IUIRender* pRender, LPCRECT pRcPaint);		// 控件基于内部状态绘图
+	virtual void PostRender(IUIRender* pRender, LPCRECT pRcPaint);		// 控件基于内部状态绘图
 	virtual void SetAttribute(LPCTSTR lpszName, LPCTSTR lpszValue);
 
 	// 刷新
@@ -160,6 +172,12 @@ private:
 	// tooltip
 	CDuiString m_strToolTip;
 	int m_nTooltipWidth;
+
+	// 属性
+	DWORD m_dwBorderColor;
+	DWORD m_dwFocusBorderColor;
+	SIZE m_cxyBorderRound;
+	int m_nBorderSize;
 
 protected:
 	CDuiRect m_rcControl;	// 控件绘制区域
