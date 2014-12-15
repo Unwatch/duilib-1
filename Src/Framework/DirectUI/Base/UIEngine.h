@@ -29,6 +29,9 @@ public:
 	void InitCOMEx(DWORD dwCoInit);
 	void InitOLE();
 
+	HFONT GetFont(LPCTSTR lpszFontName);
+	FontObject *GetFontObject(LPCTSTR lpszFontName);
+
 public:
 	CResourceManager* GetResourceManager();
 

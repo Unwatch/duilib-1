@@ -51,6 +51,7 @@ void CUIEngine::Init()
 
 	// 其他单例启动，销毁Engine时删除，确保生命周期可控
 	m_pResourceManager = CResourceManager::GetInstance();
+	m_pResourceManager->SetDefaultFont(_T("微软雅黑"));
 	CUIPaint::GetInstance();
 
 	// 注册提供的基础控件
@@ -65,6 +66,9 @@ void CUIEngine::Init()
 	UI_REGISTER_DYNCREATE(_T("TabLayout"),CTabLayoutUI,false);
 
 	UI_REGISTER_DYNCREATE(_T("Label"),CLabelUI,false);
+	UI_REGISTER_DYNCREATE(_T("Edit"),CEditUI,true);
+	UI_REGISTER_DYNCREATE(_T("RichEdit"),CRichEditUI,true);
+
 }
 
 void CUIEngine::Uninit()
@@ -114,25 +118,61 @@ int CUIEngine::MessageLoop()
 
 bool CUIEngine::TranslateMessage(const LPMSG pMsg)
 {
+	if(!::IsWindow(pMsg->hwnd))
+	{
+		return false;
+	}
+
 	// pMsg->hwnd 如果在 m_arrayDirectUI 中
 	// 说明这个窗口是自绘窗口，分发消息处理
 	int nCount = m_arrayDirectUI.GetSize();
-	if ( !::IsWindow(pMsg->hwnd) )
+	LRESULT lRes = S_OK;
+
+	UINT uStyle = GetWindowStyle(pMsg->hwnd);
+	bool bIsChildWindow = (uStyle & WS_CHILD ) != 0;
+	if ( bIsChildWindow )
+	{
+		HWND hWndParent = ::GetParent(pMsg->hwnd);
+
+		for( int i = m_arrayDirectUI.GetSize() -1 ; i >=0 ; --i ) 
+		{
+			CWindowUI* pT = static_cast<CWindowUI*>(m_arrayDirectUI[i]);        
+			HWND hTempParent = hWndParent;
+			while(hTempParent)
+			{
+				if(pMsg->hwnd == pT->GetHWND() || hTempParent == pT->GetHWND())
+				{
+					if (pT->TranslateAccelerator(pMsg))
+						return true;
+					// by Redrain WebBrowser Tab
+					pT->PreMessageHandler(pMsg, lRes);
+				}
+				hTempParent = GetParent(hTempParent);
+			}
+		}
 		return false;
+	}
 
 	// 将消息交给窗口实例，使窗口实例有机会过滤消息或处理加速键
-	LRESULT lRes = S_OK;
-	for ( int i=0; i<nCount;++i )
+
+	for(int i = 0; i < nCount; ++i)
 	{
-		CWindowUI* pWindow = static_cast<CWindowUI*>(m_arrayDirectUI.GetAt(i));
-		if ( pMsg->hwnd != pWindow->GetHWND())
+		CWindowUI *pWindow = static_cast<CWindowUI *>(m_arrayDirectUI.GetAt(i));
+
+		if(pMsg->hwnd != pWindow->GetHWND())
+		{
 			continue;
+		}
 
-		if ( pWindow->TranslateAccelerator(pMsg))
+		if(pWindow->TranslateAccelerator(pMsg))
+		{
 			return true;
+		}
 
-		if ( pWindow->PreMessageHandler(pMsg,lRes))
+		if(pWindow->PreMessageHandler(pMsg, lRes))
+		{
 			return true;
+		}
 	}
 
 	return false;
@@ -292,5 +332,16 @@ bool CUIEngine::IsActiveControl(LPCTSTR lpszClass)
 		++iter;
 	}
 	return false;
+}
+
+HFONT CUIEngine::GetFont(LPCTSTR lpszFontName)
+{
+	FontObject *pFontObject = m_pResourceManager->GetFont(lpszFontName);
+	return pFontObject->GetFont();
+}
+
+FontObject * CUIEngine::GetFontObject(LPCTSTR lpszFontName)
+{
+	return m_pResourceManager->GetFont(lpszFontName);
 }
 

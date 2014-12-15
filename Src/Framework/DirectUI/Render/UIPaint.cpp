@@ -87,7 +87,7 @@ void CUIPaint::DrawButton(IUIRender *pRender,CButtonUI *pControl,LPCRECT rcUpdat
 		return;
 	}
 	
-	FontObject* pFontObject = CResourceManager::GetInstance()->GetFont(pControl->GetFontIndex());
+	FontObject* pFontObject = CResourceManager::GetInstance()->GetFont(pControl->GetFontName());
 	if (pFontObject)
 	{
 		pRender->DrawText(pFontObject, rcUpdate, pControl->GetText(), pControl->GetTextColor(), pControl->GetTextStyleByValue());
@@ -187,4 +187,62 @@ void CUIPaint::DrawControl(IUIRender *pRender,CControlUI* pControl,LPCRECT rcUpd
 void CUIPaint::DrawScrollBar(IUIRender *pRender,CScrollBarUI *pButton,LPCRECT rcUpdate)
 {
 
+}
+
+void CUIPaint::DrawEdit(IUIRender *pRender,CEditUI *pControl,LPCRECT rcUpdate)
+{
+	// »­±³¾°É«
+	CDuiRect rcControl(pControl->GetPosition());
+	CDuiRect rcOverlop;
+	rcOverlop.IntersectRect(&rcControl,rcUpdate);
+
+	this->DrawBackColor(pRender,
+		pControl->GetColorProperty(UIProperty_Back_Color1),
+		pControl->GetColorProperty(UIProperty_Back_Color2),
+		pControl->GetColorProperty(UIProperty_Back_Color3),
+		rcUpdate,&rcOverlop,&rcControl);
+
+	ImageObject* pImage = NULL;
+	LPCTSTR lpszString = NULL;
+
+	// »­±³¾°Í¼
+	pImage = pControl->GetImageProperty(UIProperty_Back_Image);
+	if ( pImage != NULL )
+	{
+		pRender->DrawImage(pImage,&rcControl,rcUpdate);
+	}
+
+	// »­Ç°¾°Í¼
+	pImage = pControl->GetImageProperty(UIProperty_Fore_Image);
+	if ( pImage != NULL )
+	{
+		pRender->DrawImage(pImage,&rcControl,rcUpdate);
+	}
+
+	// »­ÎÄ×Ö
+	lpszString = pControl->GetPropertyForState(UIProperty_Text_String);
+	if ( lpszString != NULL )
+	{
+		//pRender->DrawText(&rcControl,lpszString);
+	}
+
+	// »­±ß¿ò
+	if ( pControl->GetIntProperty(UIProperty_Border_Wdith) != 0 )
+	{
+		// ÐèÒª»­±ß¿ò
+		do 
+		{
+			DWORD dwBorderColor = pControl->GetColorProperty(UIProperty_Border_Color);
+			if ( dwBorderColor == 0 )
+				break;
+
+			CDuiRect rcBorder;
+			rcBorder.left = 1;
+			rcBorder.right = 1;
+			rcBorder.top = 1;
+			rcBorder.bottom = 1;
+			pRender->DrawRectangleBorder(&rcControl,&rcBorder,0xFF0000FF);
+		} while (false);
+
+	}
 }

@@ -3,7 +3,7 @@
 /*/////////////////////////////////////////////////////////////
 //
 // 文件名称	:	WindowUI.h
-// 创建人	: 	daviyang35@QQ.com
+// 创建人	: 	daviyang35@gmail.com
 // 创建时间	:	2014-11-08 16:11:01
 // 说明		:	DirectUI Window
 /////////////////////////////////////////////////////////////*/
@@ -70,11 +70,16 @@ public:
 	void SendNotify(TNotifyUI *pMsg, bool bAsync = false);
 	void SendNotify(CControlUI* pControl, UINOTIFY dwType, WPARAM wParam = 0, LPARAM lParam = 0, bool bAsync = true);
 
+	// 窗口默认字体
+	void SetDefaultFont(LPCTSTR lpszFaceName,int nSize = 12, bool bBold = false, bool bUnderline= false, bool bItalic= false ,bool bStrikeout= false);
+	FontObject* GetDefaultFont(void);
+
 	// 子控件管理相关
 	bool InitControls(CControlUI* pControl, CControlUI* pParent = NULL);
 	void AddDelayedCleanup(CControlUI* pControl);
 	void ReapObjects(CControlUI* pControl);
 
+	// PostPaint不明
 	int GetPostPaintCount() const;
 	bool AddPostPaint(CControlUI* pControl);
 	bool RemovePostPaint(CControlUI* pControl);
@@ -86,20 +91,30 @@ public:
 	void KillTimer(CControlUI* pControl);
 	void RemoveAllTimers();
 
+	TEXTMETRIC GetTM(HFONT hFont);
+
+public:
+
 	// 消息过滤
-	void AddMessageFilter(IMessageFilterUI* pFilter);
-	void RemoveMessageFilter(IMessageFilterUI* pFilter);
+	void AddWindowMessageFilter(IMessageFilterUI* pFilter);
+	void RemoveWindowMessageFilter(IMessageFilterUI* pFilter);
+
+	// 全局消息的过滤
+	void AddPreMessageFilter(IMessageFilterUI* pFilter);
+	void RemovePreMessageFilter(IMessageFilterUI* pFilter);
+
+public:
 	// 实现自绘窗口的窗口消息处理
 	virtual LRESULT MessageHandler(UINT uMsg, WPARAM wParam, LPARAM lParam, bool& bHandled);
 	// 重写的CWindowWnd窗口消息循环
 	virtual LRESULT WindowProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	virtual void SendNotifyEvent(TNotifyUI *pMsg);
 	// 优先过滤消息
 	virtual bool PreMessageHandler(const LPMSG pMsg, LRESULT& lRes);
 	// 处理加速键消息
 	virtual bool TranslateAccelerator(MSG *pMsg);
-	LRESULT ReflectNotifications(_In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam, _Inout_ bool& bHandled);
 
+	LRESULT ReflectNotifications(_In_ UINT uMsg, _In_ WPARAM wParam, _In_ LPARAM lParam, _Inout_ bool& bHandled);
+	virtual void SendNotifyEvent(TNotifyUI *pMsg);
 private:
 	// 控件与实例
 	HINSTANCE m_hInstance;
@@ -129,9 +144,9 @@ private:
 	bool m_bFirstLayout;
 	bool m_bUpdateNeeded;
 	bool m_bFocusNeeded;
-	HDC m_hPaintDC;
 	CMemDC m_OffscreenDC;
 	IUIRender *m_pRenderEngine;
+	FontObject *m_pDefaultFont;
 
 	// Tooltip
 	HWND m_hWndTooltip;
@@ -144,6 +159,7 @@ private:
 	CStdPtrArray m_arrayDelayedCleanup;
 	CStdPtrArray m_arrayAsyncNotify;
 	CStdPtrArray m_arrayNotifyFilters;
+	CStdPtrArray m_arrayWindowMessageFilters;
 	CStdPtrArray m_arrayPreMessageFilters;
 	CStdPtrArray m_arrayTranslateAccelerators;
 	CStdPtrArray m_arrayPostPaintControls;
@@ -151,6 +167,7 @@ private:
 	UINT m_uTimerID;
 
 	CStdStringPtrMap m_mapNameHash;
+	CStdStringPtrMap m_mapOptionGroup;
 
 #ifdef _DEBUG
 	void TestUICrossThread();
